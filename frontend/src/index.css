@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-dark-bg;
+    background-color: #0a0c12;
+  }
+  
+  body {
+    @apply bg-dark-bg text-gray-100;
+    background-color: #0a0c12;
+    min-height: 100vh;
+  }
+  
+  #root {
+    min-height: 100vh;
+    background-color: #0a0c12;
+  }
+}
+
+@layer utilities {
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+  
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+}

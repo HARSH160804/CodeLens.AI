@@ -1,0 +1,767 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: BloomWay AI - Comprehensive serverless codebase understanding tool
+
+Globals:
+  Function:
+    Runtime: python3.9
+    Architectures:
+      - arm64
+    Environment:
+      Variables:
+        SESSIONS_TABLE: !Ref SessionsTable
+        REPOSITORIES_TABLE: !Ref RepositoriesTable
+        EMBEDDINGS_TABLE: !Ref EmbeddingsTable
+        CODE_BUCKET: !Ref CodeArtifactsBucket
+        CACHE_TABLE: !Ref CacheTable
+        DOCS_TABLE: !Ref RepoDocumentationTable
+        INGESTION_JOBS_TABLE: !Ref IngestionJobsTable
+        PROCESSING_QUEUE_URL: !Ref ProcessingQueue
+        BEDROCK_REGION: !Ref AWS::Region
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+
+Resources:
+  # API Gateway
+  BloomWayApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      BinaryMediaTypes:
+        - 'multipart/form-data'
+        - 'application/pdf'
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+
+  # Lambda Functions
+  # Legacy Synchronous Ingestion (kept for rollback)
+  IngestRepoFunctionLegacy:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.ingest_repo.lambda_handler
+      MemorySize: 512
+      Timeout: 300
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RepositoriesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmbeddingsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - S3CrudPolicy:
+            BucketName: !Ref CodeArtifactsBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      # Events removed - async endpoint takes over /repos/ingest
+
+  GetRepoStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.ingest_repo.get_status_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        GetStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/status
+            Method: GET
+
+  ArchitectureFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.architecture.lambda_handler
+      MemorySize: 512
+      Timeout: 120
+      Environment:
+        Variables:
+          CACHE_TABLE_NAME: BloomWay-Cache
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref EmbeddingsTable
+        - S3ReadPolicy:
+            BucketName: !Ref CodeArtifactsBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:PutItem
+                - dynamodb:UpdateItem
+                - dynamodb:DeleteItem
+                - dynamodb:Query
+              Resource: !GetAtt CacheTable.Arn
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        GetArchitecture:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/architecture
+            Method: GET
+
+  ExplainFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.explain_file.lambda_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref EmbeddingsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref CacheTable
+        - S3ReadPolicy:
+            BucketName: !Ref CodeArtifactsBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        ExplainFile:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/files/{path}
+            Method: GET
+
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.chat.lambda_handler
+      MemorySize: 512
+      Timeout: 60
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref EmbeddingsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        Chat:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/chat
+            Method: POST
+
+  GetFileContentFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.get_file_content.lambda_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref EmbeddingsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        GetFileContent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/file
+            Method: GET
+
+  GetRepoMetadataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.get_repo_metadata.lambda_handler
+      MemorySize: 256
+      Timeout: 30
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        GetRepoMetadata:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/metadata
+            Method: GET
+
+  # Documentation Generation and Export Functions
+  GenerateDocsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.docs_generate.lambda_handler
+      MemorySize: 1024
+      Timeout: 300
+      Environment:
+        Variables:
+          REPOSITORIES_TABLE: !Ref RepositoriesTable
+          EMBEDDINGS_TABLE: !Ref EmbeddingsTable
+          CACHE_TABLE: !Ref CacheTable
+          REPO_DOCUMENTATION_TABLE: !Ref RepoDocumentationTable
+          CODE_BUCKET: !Ref CodeArtifactsBucket
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RepoDocumentationTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref EmbeddingsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref CacheTable
+        - S3CrudPolicy:
+            BucketName: !Ref CodeArtifactsBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        GenerateDocs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/docs/generate
+            Method: POST
+
+  ExportDocsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.docs_export.lambda_handler
+      MemorySize: 2048
+      Timeout: 30
+      Environment:
+        Variables:
+          REPO_DOCUMENTATION_TABLE: !Ref RepoDocumentationTable
+          CODE_BUCKET: !Ref CodeArtifactsBucket
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepoDocumentationTable
+        - S3ReadPolicy:
+            BucketName: !Ref CodeArtifactsBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        ExportDocs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/docs/export
+            Method: GET
+
+  DocsStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.docs_status.lambda_handler
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          REPO_DOCUMENTATION_TABLE: !Ref RepoDocumentationTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepoDocumentationTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        DocsStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/{id}/docs/status
+            Method: GET
+
+  # Async Ingestion Functions
+  IngestAsyncFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.ingest_async.lambda_handler
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          INGESTION_JOBS_TABLE: !Ref IngestionJobsTable
+          PROCESSING_QUEUE_URL: !Ref ProcessingQueue
+          REPOSITORIES_TABLE: !Ref RepositoriesTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref IngestionJobsTable
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt ProcessingQueue.QueueName
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        IngestAsync:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /repos/ingest
+            Method: POST
+
+  ProcessRepoWorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.process_repo_worker.lambda_handler
+      MemorySize: 3008
+      Timeout: 900
+      Environment:
+        Variables:
+          INGESTION_JOBS_TABLE: !Ref IngestionJobsTable
+          REPOSITORIES_TABLE: !Ref RepositoriesTable
+          EMBEDDINGS_TABLE: !Ref EmbeddingsTable
+          SESSIONS_TABLE: !Ref SessionsTable
+          CODE_BUCKET: !Ref CodeArtifactsBucket
+          BEDROCK_REGION: !Ref AWS::Region
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref IngestionJobsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RepositoriesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EmbeddingsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - S3CrudPolicy:
+            BucketName: !Ref CodeArtifactsBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+                - bedrock:InvokeModelWithResponseStream
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+                - sqs:ReceiveMessage
+              Resource: !GetAtt ProcessingQueue.Arn
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        ProcessingQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ProcessingQueue.Arn
+            BatchSize: 1
+            MaximumBatchingWindowInSeconds: 0
+
+  GetIngestionStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ../backend/
+      Handler: handlers.ingest_async.get_status_handler
+      MemorySize: 256
+      Timeout: 10
+      Environment:
+        Variables:
+          INGESTION_JOBS_TABLE: !Ref IngestionJobsTable
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref IngestionJobsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource: '*'
+      Events:
+        GetStatus:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BloomWayApi
+            Path: /ingestion/status/{job_id}
+            Method: GET
+
+  # DynamoDB Tables
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-Sessions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: session_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: session_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  RepositoriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-Repositories
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: repo_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: repo_id
+          KeyType: HASH
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  EmbeddingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-Embeddings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: repo_id
+          AttributeType: S
+        - AttributeName: chunk_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: repo_id
+          KeyType: HASH
+        - AttributeName: chunk_id
+          KeyType: RANGE
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-Cache
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: cache_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: cache_key
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  RepoDocumentationTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-RepoDocumentation
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: repo_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: repo_id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  IngestionJobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-IngestionJobs
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: job_id
+          AttributeType: S
+        - AttributeName: idempotency_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: job_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: idempotency-index
+          KeySchema:
+            - AttributeName: idempotency_key
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  # SQS Queues for Async Processing
+  ProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: BloomWay-RepositoryProcessing
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ProcessingDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  ProcessingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: BloomWay-RepositoryProcessing-DLQ
+      MessageRetentionPeriod: 1209600
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  # CloudWatch Alarms for Async Ingestion
+  ProcessingErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: BloomWay-ProcessingWorker-HighErrorRate
+      AlarmDescription: Alert when processing worker error rate exceeds 10%
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ProcessRepoWorkerFunction
+      TreatMissingData: notBreaching
+
+  DLQMessagesAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: BloomWay-ProcessingDLQ-MessagesPresent
+      AlarmDescription: Alert when messages appear in DLQ
+      MetricName: ApproximateNumberOfMessagesVisible
+      Namespace: AWS/SQS
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ProcessingDLQ.QueueName
+      TreatMissingData: notBreaching
+
+  # S3 Bucket
+  CodeArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'bloomway-code-${AWS::AccountId}-${AWS::Region}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteAfter1Day
+            Status: Enabled
+            ExpirationInDays: 1
+            NoncurrentVersionExpirationInDays: 1
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Application
+          Value: BloomWay-AI
+
+  # S3 Bucket Policy
+  CodeArtifactsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CodeArtifactsBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+            Resource: !Sub '${CodeArtifactsBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${BloomWayApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/'
+    Export:
+      Name: BloomWayApiEndpoint
+
+  SessionsTableName:
+    Description: DynamoDB Sessions table name
+    Value: !Ref SessionsTable
+    Export:
+      Name: BloomWaySessionsTable
+
+  RepositoriesTableName:
+    Description: DynamoDB Repositories table name
+    Value: !Ref RepositoriesTable
+    Export:
+      Name: BloomWayRepositoriesTable
+
+  EmbeddingsTableName:
+    Description: DynamoDB Embeddings table name
+    Value: !Ref EmbeddingsTable
+    Export:
+      Name: BloomWayEmbeddingsTable
+
+  CodeBucketName:
+    Description: S3 bucket for code artifacts
+    Value: !Ref CodeArtifactsBucket
+    Export:
+      Name: BloomWayCodeBucket
+
+  CacheTableName:
+    Description: DynamoDB Cache table name
+    Value: !Ref CacheTable
+    Export:
+      Name: BloomWayCacheTable
+
+  RepoDocumentationTableName:
+    Description: DynamoDB RepoDocumentation table name
+    Value: !Ref RepoDocumentationTable
+    Export:
+      Name: BloomWayRepoDocumentationTable
+
+  IngestionJobsTableName:
+    Description: DynamoDB IngestionJobs table name
+    Value: !Ref IngestionJobsTable
+    Export:
+      Name: BloomWayIngestionJobsTable
+
+  ProcessingQueueUrl:
+    Description: SQS Processing Queue URL
+    Value: !Ref ProcessingQueue
+    Export:
+      Name: BloomWayProcessingQueueUrl
+
+  ProcessingDLQUrl:
+    Description: SQS Processing Dead Letter Queue URL
+    Value: !Ref ProcessingDLQ
+    Export:
+      Name: BloomWayProcessingDLQUrl

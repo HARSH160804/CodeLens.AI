@@ -1,0 +1,12 @@
+.DS_Store
+aws/
+.venv/
+AWSCLIV2.pkg
+test_upload.zip
+sam-app/
+node_modules/
+dist/
+build/
+.env
+__pycache__/
+*.pyc

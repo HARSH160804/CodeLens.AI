@@ -1,0 +1,191 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: BloomWay AI - Serverless codebase understanding tool
+
+Globals:
+  Function:
+    Timeout: 60
+    MemorySize: 1024
+    Runtime: python3.11
+    Environment:
+      Variables:
+        SESSIONS_TABLE: !Ref SessionsTable
+        REPOSITORIES_TABLE: !Ref RepositoriesTable
+        EMBEDDINGS_TABLE: !Ref EmbeddingsTable
+        CODE_BUCKET: !Ref CodeBucket
+
+Resources:
+  # Lambda Functions
+  IngestRepoFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: handlers.ingest_repo.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RepositoriesTable
+        - S3CrudPolicy:
+            BucketName: !Ref CodeBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        IngestApi:
+          Type: Api
+          Properties:
+            Path: /ingest
+            Method: post
+
+  ExplainFileFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: handlers.explain_file.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - S3ReadPolicy:
+            BucketName: !Ref CodeBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        ExplainApi:
+          Type: Api
+          Properties:
+            Path: /explain
+            Method: post
+
+  ArchitectureFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: handlers.architecture.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref RepositoriesTable
+        - S3ReadPolicy:
+            BucketName: !Ref CodeBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        ArchitectureApi:
+          Type: Api
+          Properties:
+            Path: /architecture/{repositoryId}
+            Method: get
+
+  ChatFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: handlers.chat.lambda_handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SessionsTable
+        - DynamoDBReadPolicy:
+            TableName: !Ref EmbeddingsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        ChatApi:
+          Type: Api
+          Properties:
+            Path: /chat
+            Method: post
+
+  GenerateDocsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: handlers.generate_docs.lambda_handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref SessionsTable
+        - S3CrudPolicy:
+            BucketName: !Ref CodeBucket
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
+      Events:
+        ExportApi:
+          Type: Api
+          Properties:
+            Path: /export
+            Method: post
+
+  # DynamoDB Tables
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-Sessions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  RepositoriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-Repositories
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: repositoryId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: repositoryId
+          KeyType: HASH
+
+  EmbeddingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: BloomWay-Embeddings
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: repositoryId
+          AttributeType: S
+        - AttributeName: chunkId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: repositoryId
+          KeyType: HASH
+        - AttributeName: chunkId
+          KeyType: RANGE
+
+  # S3 Bucket
+  CodeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'bloomway-code-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteExpiredSessions
+            Status: Enabled
+            ExpirationInDays: 1
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/'

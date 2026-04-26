@@ -1,0 +1,122 @@
+{
+  "flask": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "django": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "fastapi": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "sqlalchemy": {
+    "category": "database",
+    "ecosystem": "python"
+  },
+  "psycopg2": {
+    "category": "database",
+    "ecosystem": "python"
+  },
+  "pymongo": {
+    "category": "database",
+    "ecosystem": "python"
+  },
+  "redis": {
+    "category": "cache",
+    "ecosystem": "python"
+  },
+  "pytest": {
+    "category": "testing",
+    "ecosystem": "python"
+  },
+  "unittest": {
+    "category": "testing",
+    "ecosystem": "python"
+  },
+  "boto3": {
+    "category": "cloud",
+    "ecosystem": "python"
+  },
+  "requests": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "numpy": {
+    "category": "ml",
+    "ecosystem": "python"
+  },
+  "pandas": {
+    "category": "ml",
+    "ecosystem": "python"
+  },
+  "scikit-learn": {
+    "category": "ml",
+    "ecosystem": "python"
+  },
+  "tensorflow": {
+    "category": "ml",
+    "ecosystem": "python"
+  },
+  "pytorch": {
+    "category": "ml",
+    "ecosystem": "python"
+  },
+  "celery": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "gunicorn": {
+    "category": "infra",
+    "ecosystem": "python"
+  },
+  "uwsgi": {
+    "category": "infra",
+    "ecosystem": "python"
+  },
+  "pyjwt": {
+    "category": "auth",
+    "ecosystem": "python"
+  },
+  "authlib": {
+    "category": "auth",
+    "ecosystem": "python"
+  },
+  "flask-login": {
+    "category": "auth",
+    "ecosystem": "python"
+  },
+  "django-rest-framework": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "pydantic": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "marshmallow": {
+    "category": "backend",
+    "ecosystem": "python"
+  },
+  "alembic": {
+    "category": "database",
+    "ecosystem": "python"
+  },
+  "black": {
+    "category": "infra",
+    "ecosystem": "python"
+  },
+  "flake8": {
+    "category": "infra",
+    "ecosystem": "python"
+  },
+  "mypy": {
+    "category": "infra",
+    "ecosystem": "python"
+  },
+  "pylint": {
+    "category": "infra",
+    "ecosystem": "python"
+  }
+}

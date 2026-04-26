@@ -1,0 +1,12 @@
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# Build artifacts
+*.zip
+packaged.yaml
+
+# IDE
+.vscode/
+.idea/
+.DS_Store

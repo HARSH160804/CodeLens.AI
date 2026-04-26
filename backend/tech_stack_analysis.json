@@ -1,0 +1,341 @@
+{
+  "technologies": [
+    {
+      "id": "boto3",
+      "name": "Boto3",
+      "version": "1.34.0",
+      "category": "devops",
+      "icon_svg": "si:amazonaws",
+      "description": "AWS SDK for Python",
+      "usage": {
+        "files_using": 0,
+        "total_imports": 0,
+        "percentage": 0.0
+      },
+      "security": {
+        "status": "outdated",
+        "vulnerabilities": [],
+        "last_audit": "2024-01-15"
+      },
+      "license": "Apache 2.0",
+      "confidence": 1.0,
+      "alternatives": [
+        "AWS CLI",
+        "Terraform",
+        "Pulumi"
+      ]
+    },
+    {
+      "id": "requests",
+      "name": "Requests",
+      "version": "2.31.0",
+      "category": "backend",
+      "icon_svg": "si:python:#3776AB",
+      "description": "HTTP library for Python",
+      "usage": {
+        "files_using": 0,
+        "total_imports": 0,
+        "percentage": 0.0
+      },
+      "security": {
+        "status": "outdated",
+        "vulnerabilities": [],
+        "last_audit": "2024-01-15"
+      },
+      "license": "Apache 2.0",
+      "confidence": 1.0,
+      "alternatives": [
+        "httpx",
+        "aiohttp",
+        "urllib3"
+      ]
+    },
+    {
+      "id": "pygithub",
+      "name": "PyGithub",
+      "version": "2.1.1",
+      "category": "devops",
+      "icon_svg": "si:github",
+      "description": "Python library for GitHub API",
+      "usage": {
+        "files_using": 0,
+        "total_imports": 0,
+        "percentage": 0.0
+      },
+      "security": {
+        "status": "outdated",
+        "vulnerabilities": [],
+        "last_audit": "2024-01-15"
+      },
+      "license": "LGPL",
+      "confidence": 1.0,
+      "alternatives": [
+        "ghapi",
+        "github3.py",
+        "gidgethub"
+      ]
+    },
+    {
+      "id": "gitpython",
+      "name": "GitPython",
+      "version": "3.1.40",
+      "category": "devops",
+      "icon_svg": "si:git",
+      "description": "Python library for Git",
+      "usage": {
+        "files_using": 0,
+        "total_imports": 0,
+        "percentage": 0.0
+      },
+      "security": {
+        "status": "outdated",
+        "vulnerabilities": [],
+        "last_audit": "2024-01-15"
+      },
+      "license": "BSD",
+      "confidence": 1.0,
+      "alternatives": [
+        "dulwich",
+        "pygit2",
+        "sh"
+      ]
+    },
+    {
+      "id": "numpy",
+      "name": "NumPy",
+      "version": "1.24.0",
+      "category": "backend",
+      "icon_svg": "si:numpy",
+      "description": "Fundamental package for scientific computing",
+      "usage": {
+        "files_using": 0,
+        "total_imports": 0,
+        "percentage": 0.0
+      },
+      "security": {
+        "status": "outdated",
+        "vulnerabilities": [],
+        "last_audit": "2024-01-15"
+      },
+      "license": "BSD",
+      "confidence": 1.0,
+      "alternatives": [
+        "JAX",
+        "CuPy",
+        "Dask"
+      ]
+    },
+    {
+      "id": "python",
+      "name": "Python",
+      "version": "unknown",
+      "category": "backend",
+      "icon_svg": "si:python:#3776AB",
+      "description": "High-level programming language",
+      "usage": {
+        "files_using": 40,
+        "total_imports": 0,
+        "percentage": 71.42857142857143
+      },
+      "security": {
+        "status": "unknown",
+        "vulnerabilities": [],
+        "last_audit": "2024-01-15"
+      },
+      "license": "PSF",
+      "confidence": 0.7,
+      "alternatives": [
+        "Ruby",
+        "JavaScript",
+        "Go"
+      ]
+    }
+  ],
+  "categories": {
+    "frontend": [],
+    "backend": [
+      {
+        "id": "requests",
+        "name": "Requests",
+        "version": "2.31.0",
+        "category": "backend",
+        "icon_svg": "si:python:#3776AB",
+        "description": "HTTP library for Python",
+        "usage": {
+          "files_using": 0,
+          "total_imports": 0,
+          "percentage": 0.0
+        },
+        "security": {
+          "status": "outdated",
+          "vulnerabilities": [],
+          "last_audit": "2024-01-15"
+        },
+        "license": "Apache 2.0",
+        "confidence": 1.0,
+        "alternatives": [
+          "httpx",
+          "aiohttp",
+          "urllib3"
+        ]
+      },
+      {
+        "id": "numpy",
+        "name": "NumPy",
+        "version": "1.24.0",
+        "category": "backend",
+        "icon_svg": "si:numpy",
+        "description": "Fundamental package for scientific computing",
+        "usage": {
+          "files_using": 0,
+          "total_imports": 0,
+          "percentage": 0.0
+        },
+        "security": {
+          "status": "outdated",
+          "vulnerabilities": [],
+          "last_audit": "2024-01-15"
+        },
+        "license": "BSD",
+        "confidence": 1.0,
+        "alternatives": [
+          "JAX",
+          "CuPy",
+          "Dask"
+        ]
+      },
+      {
+        "id": "python",
+        "name": "Python",
+        "version": "unknown",
+        "category": "backend",
+        "icon_svg": "si:python:#3776AB",
+        "description": "High-level programming language",
+        "usage": {
+          "files_using": 40,
+          "total_imports": 0,
+          "percentage": 71.42857142857143
+        },
+        "security": {
+          "status": "unknown",
+          "vulnerabilities": [],
+          "last_audit": "2024-01-15"
+        },
+        "license": "PSF",
+        "confidence": 0.7,
+        "alternatives": [
+          "Ruby",
+          "JavaScript",
+          "Go"
+        ]
+      }
+    ],
+    "database": [],
+    "auth": [],
+    "testing": [],
+    "devops": [
+      {
+        "id": "boto3",
+        "name": "Boto3",
+        "version": "1.34.0",
+        "category": "devops",
+        "icon_svg": "si:amazonaws",
+        "description": "AWS SDK for Python",
+        "usage": {
+          "files_using": 0,
+          "total_imports": 0,
+          "percentage": 0.0
+        },
+        "security": {
+          "status": "outdated",
+          "vulnerabilities": [],
+          "last_audit": "2024-01-15"
+        },
+        "license": "Apache 2.0",
+        "confidence": 1.0,
+        "alternatives": [
+          "AWS CLI",
+          "Terraform",
+          "Pulumi"
+        ]
+      },
+      {
+        "id": "pygithub",
+        "name": "PyGithub",
+        "version": "2.1.1",
+        "category": "devops",
+        "icon_svg": "si:github",
+        "description": "Python library for GitHub API",
+        "usage": {
+          "files_using": 0,
+          "total_imports": 0,
+          "percentage": 0.0
+        },
+        "security": {
+          "status": "outdated",
+          "vulnerabilities": [],
+          "last_audit": "2024-01-15"
+        },
+        "license": "LGPL",
+        "confidence": 1.0,
+        "alternatives": [
+          "ghapi",
+          "github3.py",
+          "gidgethub"
+        ]
+      },
+      {
+        "id": "gitpython",
+        "name": "GitPython",
+        "version": "3.1.40",
+        "category": "devops",
+        "icon_svg": "si:git",
+        "description": "Python library for Git",
+        "usage": {
+          "files_using": 0,
+          "total_imports": 0,
+          "percentage": 0.0
+        },
+        "security": {
+          "status": "outdated",
+          "vulnerabilities": [],
+          "last_audit": "2024-01-15"
+        },
+        "license": "BSD",
+        "confidence": 1.0,
+        "alternatives": [
+          "dulwich",
+          "pygit2",
+          "sh"
+        ]
+      }
+    ],
+    "unknown": []
+  },
+  "summary": {
+    "total": 6,
+    "by_category": {
+      "devops": 3,
+      "backend": 3
+    },
+    "secure": 0,
+    "vulnerable": 0,
+    "outdated": 5,
+    "unknown": 1
+  },
+  "recommendations": [
+    {
+      "type": "update",
+      "priority": "high",
+      "message": "Update 5 outdated packages",
+      "technologies": [
+        "Boto3",
+        "Requests",
+        "PyGithub",
+        "GitPython",
+        "NumPy"
+      ],
+      "action": "Review and update to latest stable versions"
+    }
+  ]
+}
