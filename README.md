@@ -11,11 +11,6 @@
 
 ---
 
-##  Hackathon Submission Details
-
-- **Team Name:** Old Monkey
-- **Team Members:** Harsh Amarnani, Suryanshi Singh, Aditya Malik
-- **Track:** Track 4 - AI for learning and developer productivity
 
 ---
 
